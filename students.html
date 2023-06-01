@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html ng-app="studentApp">
+
+<head>
+  <title>Student List</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.9/angular.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="stylesheet" href="https://cdn.tailwindcss.com/2.2.19/tailwind.min.css">
+</head>
+
+<body class="bg-indigo-200 text-2xl" ng-controller="StudentController">
+  <div class="container mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-6 text-center">Students Information Spring Boot Application</h1>
+
+    <div class="flex justify-center items-center mb-4">
+      <div class="w-2/3">
+        <input type="text"
+          class="px-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:border-indigo-500"
+          placeholder="Search by name" ng-model="searchText">
+      </div>
+      <button class="px-4 py-2 ml-2 bg-indigo-500 text-white rounded-lg" ng-click="search()">Search</button>
+    </div>
+
+    <button class="px-2 py-1 m-1 bg-green-700 text-white rounded-lg" ng-click="toggleForm()">Add Students +</button>
+
+    <div ng-show="showForm" class="mt-4 p-4 bg-white rounded-lg shadow-lg">
+      <h2 class="text-xl font-semibold mb-4">Add Student</h2>
+      <form ng-submit="postData(roll,name,marks)">
+        <!-- Roll field -->
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="roll">Roll:</label>
+          <input class="w-full px-3 py-2 border border-gray-300 rounded-md" type="text" id="roll" name="roll"
+            ng-model="roll" placeholder="Enter roll number" required>
+        </div>
+        <!-- Name field -->
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="name">Name:</label>
+          <input class="w-full px-3 py-2 border border-gray-300 rounded-md" type="text" id="name" name="name"
+            ng-model="name" placeholder="Enter name" required>
+        </div>
+
+        <!-- Marks field -->
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="marks">Marks:</label>
+          <input class="w-full px-3 py-2 border border-gray-300 rounded-md" type="text" id="marks" name="marks"
+            ng-model="marks" placeholder="Enter marks" required>
+        </div>
+
+
+        <div class="flex justify-end">
+          <input type="submit" class="px-4 py-2 bg-green-700 text-white rounded-lg mr-2" />
+
+          <button class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg" ng-click="cancelForm()">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <table class="min-w-full">
+      <thead>
+        <tr class="bg-violet-500">
+          <th class="px-10 py-5">Name</th>
+          <th class="px-10 py-2">Roll</th>
+          <th class="px-10 py-2">Marks</th>
+          <th class="px-10 py-2">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="student in students | filter:searchText">
+          <td class="px-10 py-2 text-center font-bold">{{student.name}}</td>
+          <td class="px-10 py-2 text-center">{{student.roll}}</td>
+          <td class="px-10 py-2 text-center font-bold text-green-700">{{student.marks}}</td>
+          <td class="px-10 py-2 text-center">
+            <button class="px-2 py-1 m-1 bg-red-500 text-white rounded-lg"
+              ng-click="deleteStudent(student)">Delete</button>
+            <button class="px-2 py-1 m-1 bg-orange-500 text-white rounded-lg"
+              ng-click="updateStudent(student)">Update</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <script>
+    var app = angular.module('studentApp', []);
+
+    app.controller('StudentController', function ($scope, $http) {
+      // Fetch students data
+      $scope.showForm = false;
+      $scope.cancelForm = function () {
+        $scope.showForm = false;
+        $scope.roll = '';
+        $scope.name = '';
+        $scope.marks = '';
+      };
+
+
+      $scope.toggleForm = function () {
+        $scope.showForm = !$scope.showForm;
+      };
+
+      // Function to fetch students data
+      function getStudentsData() {
+        $http.get('https://students-springboot-application.azurewebsites.net/students')
+          .then(function (response) {
+            $scope.students = response.data;
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      }
+
+      getStudentsData();
+
+      // Initialize new student object
+      $scope.newStudent = {};
+
+      $scope.postData = function (roll, name, marks) {
+        // Populate the newStudent object with form data
+        var data = {
+          roll: roll,
+          name: name,
+          marks: marks
+        };
+
+        $http.post('http://localhost:8081/addStudent', JSON.stringify(data))
+          .then(function (response) {
+            console.log(response);
+
+            // Reset form fields
+            $scope.roll = '';
+            $scope.name = '';
+            $scope.marks = '';
+
+            // Hide the form
+            $scope.showForm = false;
+            alert("Data Submitted Sucessfully!!!!")
+            // Fetch updated students data
+            getStudentsData();
+
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      };
+
+      // Function to delete a student
+      $scope.deleteStudent = function (student) {
+        $http.delete('http://localhost:8081/deleteStudent/' + student.roll)
+          .then(function (response) {
+            console.log(response);
+
+            // Fetch updated students data
+            getStudentsData();
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      };
+
+      // Function to update a student
+      $scope.updateStudent = function (student) {
+        // Update the student data
+        $scope.showForm = true;
+        $scope.roll = student.roll;
+        $scope.name = student.name;
+        $scope.marks = student.marks;
+        var data = {
+          roll: student.roll,
+          name: student.name,
+          marks: student.marks
+        };
+
+        $http.put('http://localhost:8081/updateStudent/' + student.roll, JSON.stringify(data))
+          .then(function (response) {
+            console.log(response);
+
+            // Fetch updated students data
+            getStudentsData();
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      };
+    });
+  </script>
+</body>
+
+</html>
